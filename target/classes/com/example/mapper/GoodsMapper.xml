@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.mapper.GoodsMapper">
+	
+	<resultMap id="GoodsResultMap" type="com.example.model.Goods">
+		<id column="gsID" property="gsID" />
+		<result column="gsName" property="gsName" />
+		<result column="gsImage" property="gsImage" />
+		<result column="gsPrice" property="gsPrice" />
+		<result column="gsModel" property="gsModel" />
+		<result column="gsNum" property="gsNum" />
+		<result column="typeID" property="typeID" />
+		<result column="gsColor" property="gsColor" />
+		<result column="gsSize" property="gsSize" />
+		
+	</resultMap>
+	
+	<resultMap id="shortGoodsResultMap" type="com.example.model.shortGoods">
+		<id column="gsID" property="gsID" />
+		<result column="gsName" property="gsName" />
+		<result column="gsPrice" property="gsPrice" />
+		
+	</resultMap>
+	
+	<select id="findSpecialGoods" resultMap="GoodsResultMap">
+		select gsID, gsName, gsImage, gsPrice, gsModel, gsNum, typeID, gsColor, gsSize
+		from goods
+		where gsID between 7 and 14
+	</select>
+	
+	<select id="findAllGoods" resultMap="GoodsResultMap">
+		<!-- select gsID, gsName, gsImage, gsPrice, gsModel, gsNum, typeID, gsColor, gsSize
+		from goods -->
+		<!-- SELECT gsID, gsName, gsPrice, gsImage -->
+		SELECT *
+		from goods
+		GROUP BY gsName
+		ORDER BY gsID
+	</select>
+	
+	<select id="findGoodsByPage" resultMap="GoodsResultMap" parameterType="int">
+		<![CDATA[
+		select * from
+		(
+		SELECT @rownum:=@rownum+1 AS rownum, goods.*
+		FROM (SELECT @rownum:=0) r, (SELECT * from goods GROUP BY gsName ORDER BY gsID) goods
+		where @rownum<#{page}*12
+		) t
+		where t.rownum>(#{page}-1)*12;
+		]]>
+	</select>
+
+	
+	<select id="searchGoods" resultMap="GoodsResultMap">
+		<![CDATA[
+		select * from
+		(
+		SELECT @rownum:=@rownum+1 AS rownum, goods.*
+		FROM (SELECT @rownum:=0) r, (SELECT * from goods GROUP BY gsName ORDER BY gsID) goods
+		where typeID=#{type} and @rownum<#{page}*12
+		) t
+		where t.rownum>(#{page}-1)*12;
+		]]>
+	</select>
+	
+	<update id="delGoods" parameterType="java.lang.Integer">
+		delete from goods where gsID=#{gsID}
+	</update>
+	
+	<select id="selGoods" parameterType="java.lang.Integer" resultMap="GoodsResultMap">
+		select * from goods where gsID=#{gsID}
+	</select>
+	
+	<update id="updateGoods" parameterType="com.example.model.Goods">
+		UPDATE goods 
+		SET gsName=#{gsName}, gsImage=#{gsImage}, gsPrice=#{gsPrice}, gsModel=#{gsModel}, gsNum=#{gsNum}, typeID=#{typeID}, gsColor=#{gsColor}, gsSize=#{gsSize}
+		WHERE gsID=#{gsID}
+	</update>
+	
+	<insert id="addGoods" parameterType="com.example.model.Goods" useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO goods (gsName,gsImage,gsPrice,gsModel,gsNum,typeID,gsColor,gsSize) VALUES(#{gsName},#{gsImage},#{gsPrice},#{gsModel},#{gsNum},#{typeID},#{gsColor},#{gsSize})
+	</insert>
+	
+	<select id="findCartGoods" resultMap="GoodsResultMap" >
+		SELECT g.gsName,cartNum,g.gsPrice,g.gsImage,g.gsModel  FROM shopcart s,USER u,goods g WHERE s.userID =u.userID AND s.gsID = g.gsID AND u.userName = #{userID}
+	</select>
+	
+	<select id="totalCart" resultType="float" >
+		SELECT IFNULL(SUM(g.gsPrice*cartNum),0) FROM shopcart s,USER u,goods g WHERE s.userID =u.userID AND s.gsID = g.gsID AND u.userName =#{userID}
+	</select>
+
+	<update id="delCart" parameterType="java.lang.Integer">
+		delete from shopcart where gsId=#{gsID} and userID IN (SELECT userID FROM USER WHERE userName=#{userName}) 
+	</update>
+	
+	<insert id="addCart" parameterType="com.example.model.Goods" useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO shopcart (gsID,cartNum,userID) SELECT #{gsID},#{cartNum},userID FROM USER WHERE userName=#{userName}
+	</insert>
+	
+	<update id="updateCart" parameterType="com.example.model.Goods">
+		UPDATE shopCart SET cartNum=2 WHERE gsID=#{gsID} AND userID IN (SELECT userID FROM USER WHERE userName=#{userName}) 
+	</update>
+	
+	<select id="selCart" parameterType="java.lang.Integer" resultMap="GoodsResultMap">
+		SELECT IFNULL(SUM(cartNum),0) FROM shopcart,USER WHERE gsID=#{gsID} AND userName=#{userName}
+	</select>
+	<select id="goodsSearch" resultMap="shortGoodsResultMap">
+		<![CDATA[
+		select * from
+		(
+		SELECT @rownum:=@rownum+1 AS rownum, goods.*
+		FROM (SELECT @rownum:=0) r, (SELECT gsID, gsName, gsPrice, gsImage from goods GROUP BY gsName ORDER BY gsID) goods
+		where gsName LIKE "%"#{search}"%" and @rownum<#{page}*12
+		) t
+		where t.rownum>(#{page}-1)*12;
+		]]>
+	</select>
+</mapper>
+
+
+
+
+
+
+
+
+
